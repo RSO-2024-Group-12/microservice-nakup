@@ -140,19 +140,24 @@ public class NakupService {
             }
         }
 
+        ErrorDTO error3 = kosaricaClient.deleteKosarica(paymentOrderDTO.getId_buyer());
+        if (error3 != null) {
+            return new PairDTO<>(null, error3);
+        }
+
         InputStream is = NakupService.class.getClassLoader().getResourceAsStream("/templates/racun.html");
 
         if (is != null) {
-            ErrorDTO error3 = new ErrorDTO(500, "Napaka pri pripravi računa.");
-            return new PairDTO<>(null, error3);
+            ErrorDTO error4 = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error4);
         }
 
         String invoice;
         try {
             invoice = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            ErrorDTO error4 = new ErrorDTO(500, "Napaka pri pripravi računa.");
-            return new PairDTO<>(null, error4);
+            ErrorDTO error5 = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error5);
         }
 
         invoice = invoice.replace("${prodajalec}", paymentOrderDTO.getId_seller().toString());

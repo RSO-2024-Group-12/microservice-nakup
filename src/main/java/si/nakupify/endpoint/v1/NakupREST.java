@@ -4,6 +4,12 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import si.nakupify.service.NakupService;
 import si.nakupify.service.client.KosaricaClient;
 import si.nakupify.service.client.PaypalClient;
@@ -17,12 +23,6 @@ import java.util.logging.Logger;
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class NakupREST {
-
-    @Inject
-    PaypalClient paypalClient;
-
-    @Inject
-    KosaricaClient kosaricaClient;
 
     @Inject
     NakupService nakupService;
@@ -94,21 +94,47 @@ public class NakupREST {
         return null;
     }
 
-    @GET
-    public Response test() {
-        //paypalClient.createOrder();
-
-        //PairDTO<KosaricaDTO, ErrorDTO> pair = kosaricaClient.getKosarica(3L);
-        //KosaricaDTO kosarica = pair.getValue();
-        //ErrorDTO error = pair.getError();
-
-        //ErrorDTO errorDTO = kosaricaClient.deleteKosarica(3L);
-
-        return Response.status(200).build();
-    }
-
     @POST
     @Path("/start")
+    @Operation(
+            summary="Izvedi začetek plačila",
+            description="Izvede začetek plačila v odgovoru poda redirect url za izvedbo plačila.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode="201",
+                    description="(CREATED) Uspešno izveden začetek plačila.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PaymentOrderDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD REQUEST) Podana nepravilna oblika vhodnega objekta PaymentOrderDTO.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="401",
+                    description="(UNAUTHORIZED) Težava pri avtorizaciji za PayPal.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="422",
+                    description="(UNPROCESSABLE CONTENT) Podanega zahtevka za PayPal ni bilo mogoče procesirati.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo ali zunanjim API.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
+    })
     public Response startPayment(PaymentOrderDTO paymentOrderDTO) {
         ErrorDTO validationError = validacija(paymentOrderDTO, 0);
         if (validationError != null) {
@@ -128,6 +154,45 @@ public class NakupREST {
 
     @POST
     @Path("/confirm")
+    @Operation(
+            summary="Preveri status plačila",
+            description="Preveri status plačila in pošlje račun na e-poštni naslov kupca.<br>" +
+                    "V primeru napake vrne objekt ErrorDTO z opisom napake."
+    )
+    @APIResponses({
+            @APIResponse(
+                    responseCode="201",
+                    description="(CREATED) Uspešno izvedeno preverjanje plačila.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = PaymentOrderDTO.class)
+                    )),
+            @APIResponse(
+                    responseCode="400",
+                    description="(BAD REQUEST) Podana nepravilna oblika vhodnega objekta PaymentOrderDTO.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="403",
+                    description="(FORBIDDEN) Težava pri avtorizaciji za PayPal.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="422",
+                    description="(UNPROCESSABLE CONTENT) Podanega zahtevka za PayPal ni bilo mogoče procesirati.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    )),
+            @APIResponse(responseCode="503",
+                    description="(SERVICE UNAVALIABLE) Težava pri komunikaciji z drugo mikrostoritvijo ali zunanjim API.",
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorDTO.class)
+                    ))
+    })
     public Response confirmPayment(PaymentOrderDTO paymentOrderDTO) {
         ErrorDTO validationError = validacija(paymentOrderDTO, 1);
         if (validationError != null) {
