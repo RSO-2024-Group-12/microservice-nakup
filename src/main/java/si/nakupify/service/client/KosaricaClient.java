@@ -4,6 +4,10 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.quarkus.grpc.GrpcClient;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import si.nakupify.proto.*;
 import si.nakupify.service.dto.ElementDTO;
 import si.nakupify.service.dto.ErrorDTO;
@@ -42,6 +46,27 @@ public class KosaricaClient {
         return new KosaricaDTO(protoKosarica.getIdUporabnik(), elementi);
     }
 
+    public PairDTO<KosaricaDTO, ErrorDTO> comunicationError1(Long id_uporabnik) {
+        ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-kosarica.");
+        return new PairDTO<>(null, error);
+    }
+
+    public ErrorDTO comunicationError2(Long id_uporabnik) {
+        ErrorDTO error = new ErrorDTO(503, "Napaka pri komunikaciji z microservice-kosarica.");
+        return error;
+    }
+
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError1")
     public PairDTO<KosaricaDTO, ErrorDTO> getKosarica(Long id_uporabnik) {
         try {
             gRPCKosaricaDTO kosarica = client.getKosarica(
@@ -63,9 +88,7 @@ public class KosaricaClient {
                     break;
                 case UNAVAILABLE:
                     log.info("gRPC error UNAVAILABLE: Napaka pri komunikaciji z microservice-kosarica");
-                    error.setErrorCode(503);
-                    error.setError("Napaka pri komunikaciji z microservice-kosarica.");
-                    break;
+                    throw new RuntimeException(e);
                 default:
                     log.info("gRPC error: Napaka pri komunikaciji z microservice-kosarica");
                     error.setErrorCode(503);
@@ -77,6 +100,17 @@ public class KosaricaClient {
         }
     }
 
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError2")
     public ErrorDTO deleteKosarica(Long id_uporabnik) {
         try {
             client.deleteKosarica(
@@ -87,13 +121,8 @@ public class KosaricaClient {
 
             return null;
         } catch (StatusRuntimeException e) {
-            ErrorDTO error = new ErrorDTO();
-
             log.info("gRPC error: Napaka pri komunikaciji z microservice-kosarica");
-            error.setErrorCode(503);
-            error.setError("Napaka pri komunikaciji z microservice-kosarica.");
-
-            return error;
+            throw new RuntimeException(e);
         }
     }
 }

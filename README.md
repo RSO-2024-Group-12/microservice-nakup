@@ -48,10 +48,48 @@ Spodaj so navedeni zunanji API-ji, ki jih microservice-izdelki uporablja za svoj
 
 Podrobna dokumetacija je na voljo preko **OpenAPI (Swagger UI)**.
 
-## Zagon
+## Razvoj in zagon
 
-Zagon v dev načinu.
+### Lokalni zagon v razvojnem načinu
+
+Za zagon aplikacije s podporo za "vroče" ponovno nalaganje kode (live coding) uporabite:
 
 ```shell script
 ./mvnw quarkus:dev
+```
+
+Aplikacija bo privzeto dostopna na `http://localhost:8085`. Razvojni vmesnik (Dev UI) je na voljo na `http://localhost:8085/q/dev/`.
+
+### Pakiranje aplikacije
+
+Za pakiranje aplikacije v JAR datoteko:
+
+```shell script
+./mvnw package
+```
+
+Za izdelavo *über-jar* (vsebuje vse odvisnosti):
+
+```shell script
+./mvnw package -Dquarkus.package.jar.type=uber-jar
+```
+
+### Izgradnja Docker slike
+
+Aplikacijo lahko zapakirate v Docker sliko z ukazom:
+
+```shell script
+docker build -t nakupify/microservice-nakup .
+```
+
+## Konfiguracija
+
+Konfiguracijski parametri se nahajajo v `src/main/resources/application.properties`.
+
+## Avtomatski testi
+
+Za zagon vseh testov uporabite:
+
+```shell script
+./mvnw test
 ```

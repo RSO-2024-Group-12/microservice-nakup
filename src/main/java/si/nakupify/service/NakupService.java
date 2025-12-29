@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 import si.nakupify.service.client.KosaricaClient;
+import si.nakupify.service.client.NarocilaClient;
 import si.nakupify.service.client.PaypalClient;
 import si.nakupify.service.client.SkladisceClient;
 import si.nakupify.service.dto.*;
@@ -38,6 +39,8 @@ public class NakupService {
 
     @Inject
     Mailer mailer;
+    @Inject
+    NarocilaClient narocilaClient;
 
     private Logger log = Logger.getLogger(NakupService.class.getName());
 
@@ -49,6 +52,61 @@ public class NakupService {
     @PreDestroy
     private void destroy() {
         log.info("Ustavitev microservice-nakup.");
+    }
+
+    public void setMailer(Mailer mailer) {
+        this.mailer = mailer;
+    }
+
+    public PairDTO<byte[], ErrorDTO> prepareMail(PaymentOrderDTO paymentOrderDTO) {
+        InputStream is = NakupService.class.getClassLoader().getResourceAsStream("/templates/racun.html");
+
+        if (is == null) {
+            ErrorDTO error4 = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error4);
+        }
+
+        String invoice;
+        try {
+            invoice = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            ErrorDTO error5 = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error5);
+        }
+
+        invoice = invoice.replace("${prodajalec}", paymentOrderDTO.getId_seller().toString());
+        invoice = invoice.replace("${racun}", paymentOrderDTO.getId_order().toString());
+        invoice = invoice.replace("${datum}", LocalDate.now().toString());
+        invoice = invoice.replace("${kupec}", paymentOrderDTO.getId_buyer().toString());
+
+        String naslov = paymentOrderDTO.getStreet() + " " + paymentOrderDTO.getHouse_number() + "<br/>" +
+                paymentOrderDTO.getPostal_code() + ", " + paymentOrderDTO.getCity() + "<br/>" +
+                paymentOrderDTO.getCountry();
+        invoice = invoice.replace("${naslov}", naslov);
+        invoice = invoice.replace("${total}", paymentOrderDTO.getAmount().toString());
+
+        String items = "";
+        int i = 1;
+        for (ElementDTO element : paymentOrderDTO.getItems()) {
+            Float total = element.getCena() * element.getKolicina();
+            String item = "<tr>" +
+                    "<td>" + i + "</td>" +
+                    "<td>" + element.getNaziv() + "</td>" +
+                    "<td style=\"text-align: right;\">" + element.getKolicina() + "</td>" +
+                    "<td style=\"text-align: right;\">" + paymentOrderDTO.getCurrency() + " " + element.getCena() + "</td>" +
+                    "<td style=\"text-align: right;\">" + paymentOrderDTO.getCurrency() + " " + total + "</td>" +
+                    "</tr>";
+            items = items + item;
+        }
+        invoice = invoice.replace("${items}", items);
+
+        ITextRenderer renderer = new ITextRenderer();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+
+        renderer.setDocumentFromString(invoice);
+        renderer.layout();
+        renderer.createPDF(os);
+        return new PairDTO<>(os.toByteArray(), null);
     }
 
     public PairDTO<PaymentOrderDTO, ErrorDTO> startNakup(PaymentOrderDTO paymentOrderDTO) {
@@ -121,8 +179,6 @@ public class NakupService {
             return new PairDTO<>(null, errorPayment);
         }
 
-        //Dodaj naročilo
-
         for (ElementDTO element : paymentOrderDTO.getItems()) {
             RequestDTO request = new RequestDTO();
             request.setId_request(UUID.randomUUID().toString());
@@ -145,54 +201,13 @@ public class NakupService {
             return new PairDTO<>(null, error3);
         }
 
-        InputStream is = NakupService.class.getClassLoader().getResourceAsStream("/templates/racun.html");
+        PairDTO<byte[], ErrorDTO> pair =  prepareMail(paymentOrderDTO);
+        byte[] pdf = pair.getValue();
+        ErrorDTO error4 = pair.getError();
 
-        if (is != null) {
-            ErrorDTO error4 = new ErrorDTO(500, "Napaka pri pripravi računa.");
+        if (error4 != null) {
             return new PairDTO<>(null, error4);
         }
-
-        String invoice;
-        try {
-            invoice = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            ErrorDTO error5 = new ErrorDTO(500, "Napaka pri pripravi računa.");
-            return new PairDTO<>(null, error5);
-        }
-
-        invoice = invoice.replace("${prodajalec}", paymentOrderDTO.getId_seller().toString());
-        invoice = invoice.replace("${racun}", paymentOrderDTO.getId_order().toString());
-        invoice = invoice.replace("${datum}", LocalDate.now().toString());
-        invoice = invoice.replace("${kupec}", paymentOrderDTO.getId_buyer().toString());
-
-        String naslov = paymentOrderDTO.getStreet() + " " + paymentOrderDTO.getHouse_number() + "<br/>" +
-                paymentOrderDTO.getPostal_code() + ", " + paymentOrderDTO.getCity() + "<br/>" +
-                paymentOrderDTO.getCountry();
-        invoice = invoice.replace("${naslov}", naslov);
-        invoice = invoice.replace("${total}", paymentOrderDTO.getAmount().toString());
-
-        String items = "";
-        int i = 1;
-        for (ElementDTO element : paymentOrderDTO.getItems()) {
-            Float total = element.getCena() * element.getKolicina();
-            String item = "<tr>" +
-                    "<td>" + i + "</td>" +
-                    "<td>" + element.getNaziv() + "</td>" +
-                    "<td style=\"text-align: right;\">" + element.getKolicina() + "</td>" +
-                    "<td style=\"text-align: right;\">" + paymentOrderDTO.getCurrency() + " " + element.getCena() + "</td>" +
-                    "<td style=\"text-align: right;\">" + paymentOrderDTO.getCurrency() + " " + total + "</td>" +
-                    "</tr>";
-            items = items + item;
-        }
-        invoice = invoice.replace("${items}", items);
-
-        ITextRenderer renderer = new ITextRenderer();
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-
-        renderer.setDocumentFromString(invoice);
-        renderer.layout();
-        renderer.createPDF(os);
-        byte[] pdf = os.toByteArray();
 
         mailer.send(
                 Mail.withText(
@@ -206,6 +221,11 @@ public class NakupService {
                         "application/pdf"
                 )
         );
+
+        ErrorDTO error5 = narocilaClient.postNarocila(paymentOrderDTO);
+        if (error5 != null) {
+            return new PairDTO<>(null, error5);
+        }
 
         return new PairDTO<>(paymentOrderDTO, null);
     }

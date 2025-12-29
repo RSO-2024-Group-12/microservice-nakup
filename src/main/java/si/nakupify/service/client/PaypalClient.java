@@ -9,6 +9,10 @@ import com.paypal.sdk.models.*;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.eclipse.microprofile.faulttolerance.CircuitBreaker;
+import org.eclipse.microprofile.faulttolerance.Fallback;
+import org.eclipse.microprofile.faulttolerance.Retry;
+import org.eclipse.microprofile.faulttolerance.Timeout;
 import org.slf4j.event.Level;
 import si.nakupify.service.dto.ErrorDTO;
 import si.nakupify.service.dto.PairDTO;
@@ -50,6 +54,22 @@ public class PaypalClient {
                 .build();
     }
 
+    public PairDTO<Order, ErrorDTO> comunicationError(PaymentOrderDTO paymentOrder, Throwable exp) {
+        ErrorDTO error = new ErrorDTO(503, exp.getMessage());
+        return new PairDTO<>(null, error);
+    }
+
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError")
     public PairDTO<Order, ErrorDTO> createOrder (PaymentOrderDTO paymentOrder) {
         CreateOrderInput createOrderInput = new CreateOrderInput.Builder(
                 null,
@@ -78,17 +98,23 @@ public class PaypalClient {
         try{
             ApiResponse<Order> response = paypalClient.getOrdersController().createOrder(createOrderInput);
             return new PairDTO<>(response.getResult(), null);
-        } catch (ApiException exp) {
+        } catch (ApiException | IOException exp) {
             log.info("PayPal service error: " + exp.getMessage());
-            ErrorDTO error = new ErrorDTO(exp.getResponseCode(), exp.getMessage());
-            return new PairDTO<>(null, error);
-        } catch (IOException exp) {
-            log.info("PayPal service error: " + exp.getMessage());
-            ErrorDTO error = new ErrorDTO(503, exp.getMessage());
-            return new PairDTO<>(null, error);
+            throw new RuntimeException(exp);
         }
     }
 
+    @Retry(
+            maxRetries = 3,
+            delay = 500
+    )
+    @Timeout(2000)
+    @CircuitBreaker(
+            requestVolumeThreshold = 5,
+            failureRatio = 0.5,
+            delay = 10000
+    )
+    @Fallback(fallbackMethod = "comunicationError")
     public PairDTO<Order, ErrorDTO> captureOrder (PaymentOrderDTO paymentOrder) {
         CaptureOrderInput captureOrderInput = new CaptureOrderInput.Builder(
                 paymentOrder.getId_order(),
@@ -100,14 +126,9 @@ public class PaypalClient {
         try{
             ApiResponse<Order> response = paypalClient.getOrdersController().captureOrder(captureOrderInput);
             return new PairDTO<>(response.getResult(), null);
-        } catch (ApiException exp) {
+        } catch (ApiException | IOException exp) {
             log.info("PayPal service error: " + exp.getMessage());
-            ErrorDTO error = new ErrorDTO(exp.getResponseCode(), exp.getMessage());
-            return new PairDTO<>(null, error);
-        } catch (IOException exp) {
-            log.info("PayPal service error: " + exp.getMessage());
-            ErrorDTO error = new ErrorDTO(503, exp.getMessage());
-            return new PairDTO<>(null, error);
+            throw new RuntimeException(exp);
         }
     }
 
