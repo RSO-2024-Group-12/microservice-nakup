@@ -28,7 +28,7 @@ public class PaypalClient {
     @ConfigProperty(name="paypal.client.id")
     private String clientId;
 
-    @ConfigProperty(name="paypal.client.secret")
+    @ConfigProperty(name="paypal.secret")
     private String clientSecret;
 
     private PaypalServerSdkClient paypalClient;
