@@ -1,4 +1,4 @@
-replicaCount: 2
+replicaCount: 1
 
 image:
   repository: ghcr.io/rso-2024-group-12/microservice-nakup
@@ -18,5 +18,26 @@ probes:
     enabled: true
     path: /q/health/ready
 
-nameOverride: ""
-fullnameOverride: ""
+config:
+  kafka:
+    bootstrapServers: "nakupify-kafka-kafka-bootstrap.default.svc.cluster.local:9092"
+  postgres:
+    username: "nakupify"
+    password: "nakupify"
+    jdbcUrl: "jdbc:postgresql://nakupify-db-rw.default.svc.cluster.local:5432/nakupify"
+  services:
+    skladisceUrl: http://microservice-skladisce-service/v1/skladisce
+    narocilaUrl: http://microservice-narocila-service/internal/orders
+
+  grpc:
+    kosarica:
+      host: microservice-kosarica-service
+      port: "9001"
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
