@@ -81,4 +81,6 @@ jobs:
 
           helm upgrade --install $REPO ./helm \
           --set image.repository=$IMAGE \
-          --set image.tag=${{ github.sha }}
+          --set image.tag=${{ github.sha }} \
+          --set config.paypal.clientId=${{ secrets.PAYPAL_CLIENT_ID }} \
+          --set config.paypal.secret=${{ secrets.PAYPAL_SECRET }}

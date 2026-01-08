@@ -28,11 +28,13 @@ config:
   services:
     skladisceUrl: http://microservice-skladisce-service/v1/skladisce
     narocilaUrl: http://microservice-narocila-service/internal/orders
-
   grpc:
     kosarica:
       host: microservice-kosarica-service
       port: "9001"
+  paypal:
+    clientId: ""
+    secret: ""
 
 resources:
   requests:

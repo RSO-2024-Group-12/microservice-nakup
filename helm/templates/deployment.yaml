@@ -46,6 +46,11 @@ spec:
               value: {{ .Values.config.grpc.kosarica.host | quote }}
             - name: QUARKUS_GRPC_CLIENTS_KOSARICA_PORT
               value: {{ .Values.config.grpc.kosarica.port | quote }}
+            - name: PAYPAL_CLIENT_ID
+              value: {{.Values.config.paypal.clientId | quote}}
+            - name: PAYPAL_SECRET
+              value: {{.Values.config.paypal.secret | quote}}
+
 
           {{ - if .Values.probes.liveness.enabled }}
           livenessProbe:
