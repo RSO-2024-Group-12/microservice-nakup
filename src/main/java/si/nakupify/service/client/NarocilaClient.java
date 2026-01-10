@@ -55,7 +55,7 @@ public class NarocilaClient {
         try {
             OrderRequestDTO orderRequestDTO = new OrderRequestDTO();
             orderRequestDTO.setUserId(paymentOrderDTO.getId_buyer());
-            orderRequestDTO.setRecipientName("Tester");
+            orderRequestDTO.setRecipientName(paymentOrderDTO.getRecipient());
             orderRequestDTO.setStreet(paymentOrderDTO.getStreet());
             orderRequestDTO.setHouseNumber(paymentOrderDTO.getHouse_number());
             orderRequestDTO.setCity(paymentOrderDTO.getCity());

@@ -48,7 +48,10 @@ public class NakupServiceTest {
     private PaymentOrderDTO makePaymentOrderDTO(int mode) {
         PaymentOrderDTO paymentOrderDTO = new PaymentOrderDTO();
         paymentOrderDTO.setId_buyer(1L);
+        paymentOrderDTO.setRecipient("Janez Novak");
+        paymentOrderDTO.setRecipient_email("janez.novakov@nakupify.com");
         paymentOrderDTO.setId_seller(1L);
+        paymentOrderDTO.setStore("Nakupify");
         paymentOrderDTO.setCurrency("EUR");
         paymentOrderDTO.setReturn_url("https://nakupify.com/");
         paymentOrderDTO.setCancel_url("https://nakupify.com/");
@@ -99,7 +102,10 @@ public class NakupServiceTest {
         PaymentOrderDTO paymentOrderDTO = result.getValue();
 
         assertEquals(1L, paymentOrderDTO.getId_buyer());
+        assertEquals("Janez Novak", paymentOrderDTO.getRecipient());
+        assertEquals("janez.novakov@nakupify.com", paymentOrderDTO.getRecipient_email());
         assertEquals(1L, paymentOrderDTO.getId_seller());
+        assertEquals("Nakupify", paymentOrderDTO.getStore());
         assertEquals("EUR", paymentOrderDTO.getCurrency());
         assertEquals("https://nakupify.com/", paymentOrderDTO.getReturn_url());
         assertEquals("https://nakupify.com/", paymentOrderDTO.getCancel_url());
@@ -128,10 +134,7 @@ public class NakupServiceTest {
 
         when(kosaricaClient.deleteKosarica(1L)).thenReturn(null);
 
-        doReturn(new PairDTO<>("<html>Test invoice</html>".getBytes(StandardCharsets.UTF_8), null))
-                .when(nakupService).prepareMail(any());
-
-        //when(nakupService.prepareMail(any())).thenReturn(new PairDTO<>("<html>Test invoice</html>".getBytes(StandardCharsets.UTF_8), null));
+        doReturn(new PairDTO<>("<html>Test invoice</html>".getBytes(StandardCharsets.UTF_8), null)).when(nakupService).prepareMail(any());
 
         doNothing().when(mailer).send(any(Mail.class));
 
@@ -146,7 +149,10 @@ public class NakupServiceTest {
         PaymentOrderDTO paymentOrderDTO = result.getValue();
 
         assertEquals(1L, paymentOrderDTO.getId_buyer());
+        assertEquals("Janez Novak", paymentOrderDTO.getRecipient());
+        assertEquals("janez.novakov@nakupify.com", paymentOrderDTO.getRecipient_email());
         assertEquals(1L, paymentOrderDTO.getId_seller());
+        assertEquals("Nakupify", paymentOrderDTO.getStore());
         assertEquals("EUR", paymentOrderDTO.getCurrency());
         assertEquals("https://nakupify.com/", paymentOrderDTO.getReturn_url());
         assertEquals("https://nakupify.com/", paymentOrderDTO.getCancel_url());

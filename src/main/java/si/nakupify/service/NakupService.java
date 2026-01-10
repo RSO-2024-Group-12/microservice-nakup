@@ -39,6 +39,7 @@ public class NakupService {
 
     @Inject
     Mailer mailer;
+
     @Inject
     NarocilaClient narocilaClient;
 
@@ -62,22 +63,22 @@ public class NakupService {
         InputStream is = NakupService.class.getClassLoader().getResourceAsStream("/templates/racun.html");
 
         if (is == null) {
-            ErrorDTO error4 = new ErrorDTO(500, "Napaka pri pripravi računa.");
-            return new PairDTO<>(null, error4);
+            ErrorDTO error = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error);
         }
 
         String invoice;
         try {
             invoice = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            ErrorDTO error5 = new ErrorDTO(500, "Napaka pri pripravi računa.");
-            return new PairDTO<>(null, error5);
+            ErrorDTO error = new ErrorDTO(500, "Napaka pri pripravi računa.");
+            return new PairDTO<>(null, error);
         }
 
-        invoice = invoice.replace("${prodajalec}", paymentOrderDTO.getId_seller().toString());
+        invoice = invoice.replace("${prodajalec}", paymentOrderDTO.getStore());
         invoice = invoice.replace("${racun}", paymentOrderDTO.getId_order().toString());
         invoice = invoice.replace("${datum}", LocalDate.now().toString());
-        invoice = invoice.replace("${kupec}", paymentOrderDTO.getId_buyer().toString());
+        invoice = invoice.replace("${kupec}", paymentOrderDTO.getRecipient());
 
         String naslov = paymentOrderDTO.getStreet() + " " + paymentOrderDTO.getHouse_number() + "<br/>" +
                 paymentOrderDTO.getPostal_code() + ", " + paymentOrderDTO.getCity() + "<br/>" +
@@ -112,7 +113,10 @@ public class NakupService {
     public PairDTO<PaymentOrderDTO, ErrorDTO> startNakup(PaymentOrderDTO paymentOrderDTO) {
         PaymentOrderDTO payment = new PaymentOrderDTO();
         payment.setId_buyer(paymentOrderDTO.getId_buyer());
+        payment.setRecipient(paymentOrderDTO.getRecipient());
+        payment.setRecipient_email(paymentOrderDTO.getRecipient_email());
         payment.setId_seller(paymentOrderDTO.getId_seller());
+        payment.setStore(paymentOrderDTO.getStore());
         payment.setCurrency(paymentOrderDTO.getCurrency());
         payment.setReturn_url(paymentOrderDTO.getReturn_url());
         payment.setCancel_url(paymentOrderDTO.getCancel_url());
@@ -211,9 +215,9 @@ public class NakupService {
 
         mailer.send(
                 Mail.withText(
-                        "test@gmail.com",
-                        "Test",
-                        "test test test"
+                        paymentOrderDTO.getRecipient_email(),
+                        "Račun",
+                        "Pozdravljeni. V priponki smo vam poslali račun za nakup. Hvala da ste izbrali nas."
                 )
                 .addAttachment(
                         "Racun.pdf",

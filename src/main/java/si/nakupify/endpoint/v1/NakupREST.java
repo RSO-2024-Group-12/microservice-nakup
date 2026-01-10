@@ -36,9 +36,12 @@ public class NakupREST {
             return new ErrorDTO(400, msg);
         }
 
-        if (paymentOrderDTO.getId_buyer() == null || paymentOrderDTO.getId_seller() == null) {
-            log.info("Validation fail: PaymentOrderDTO mora imeti podana polja: id_buyer, id_seller");
-            String msg = "Polji id_buyer in id_seller morata biti podana!";
+        if (paymentOrderDTO.getId_buyer() == null || paymentOrderDTO.getId_seller() == null ||
+                paymentOrderDTO.getRecipient() == null || paymentOrderDTO.getRecipient().isBlank() ||
+                paymentOrderDTO.getRecipient_email() == null || paymentOrderDTO.getRecipient_email().isBlank() ||
+                paymentOrderDTO.getStore() == null || paymentOrderDTO.getStore().isBlank()) {
+            log.info("Validation fail: PaymentOrderDTO mora imeti podana polja: id_buyer, id_seller, recipient, recipient_mail, store");
+            String msg = "Polji id_buyer, id_seller, store, recipient_mail, recipient morata biti podana!";
             return new ErrorDTO(400, msg);
         }
 

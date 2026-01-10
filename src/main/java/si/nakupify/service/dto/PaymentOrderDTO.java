@@ -6,7 +6,13 @@ public class PaymentOrderDTO {
 
     private Long id_buyer;
 
+    private String recipient;
+
+    private String recipient_email;
+
     private Long id_seller;
+
+    private String store;
 
     private Float amount;
 
@@ -34,12 +40,15 @@ public class PaymentOrderDTO {
 
     public PaymentOrderDTO() {}
 
-    public PaymentOrderDTO(Long id_buyer, Long id_seller, Float amount, String currency,
+    public PaymentOrderDTO(Long id_buyer, String recipient, String recipient_email, Long id_seller, String store, Float amount, String currency,
                String id_order, String redirect_url, String return_url, String cancel_url,
                String street, String house_number, String city, String postal_code, String country,
                List<ElementDTO> items) {
         this.id_buyer = id_buyer;
+        this.recipient = recipient;
+        this.recipient_email = recipient_email;
         this.id_seller = id_seller;
+        this.store = store;
         this.amount = amount;
         this.currency = currency;
         this.id_order = id_order;
@@ -164,5 +173,29 @@ public class PaymentOrderDTO {
 
     public void setItems(List<ElementDTO> items) {
         this.items = items;
+    }
+
+    public String getRecipient() {
+        return recipient;
+    }
+
+    public void setRecipient(String recipient) {
+        this.recipient = recipient;
+    }
+
+    public String getStore() {
+        return store;
+    }
+
+    public void setStore(String store) {
+        this.store = store;
+    }
+
+    public String getRecipient_email() {
+        return recipient_email;
+    }
+
+    public void setRecipient_email(String recipient_email) {
+        this.recipient_email = recipient_email;
     }
 }

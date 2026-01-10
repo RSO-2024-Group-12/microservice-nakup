@@ -25,7 +25,10 @@ public class NakupEndpointTest {
     private PaymentOrderDTO paymentOrder() {
         PaymentOrderDTO paymentOrderDTO = new PaymentOrderDTO();
         paymentOrderDTO.setId_buyer(1L);
+        paymentOrderDTO.setRecipient("Janez Novak");
+        paymentOrderDTO.setRecipient_email("janez.novakov@nakupify.com");
         paymentOrderDTO.setId_seller(1L);
+        paymentOrderDTO.setStore("Nakupify");
         paymentOrderDTO.setAmount(50.00F);
         paymentOrderDTO.setCurrency("EUR");
         paymentOrderDTO.setId_order("ABC123");
@@ -41,10 +44,6 @@ public class NakupEndpointTest {
         return paymentOrderDTO;
     }
 
-    private ErrorDTO errorDTO(int code, String message) {
-        return new ErrorDTO(code, message);
-    }
-
     @Test
     void startPayment_test() {
         when(nakupService.startNakup(any())).thenReturn(new PairDTO<>(paymentOrder(), null));
@@ -52,7 +51,10 @@ public class NakupEndpointTest {
         String requestBody = """
         {
           "id_buyer": 1,
+          "recipient": "Janez Novak",
+          "recipient_email": "janez.novakov@nakupify.com",
           "id_seller": 1,
+          "store": "Nakupify",
           "currency": "EUR",
           "return_url": "https://nakupify.com/",
           "cancel_url": "https://nakupify.com/",
@@ -86,7 +88,10 @@ public class NakupEndpointTest {
         String requestBody = """
         {
             "id_buyer": 1,
+            "recipient": "Janez Novak",
+            "recipient_email": "janez.novakov@nakupify.com",
             "id_seller": 1,
+            "store": "Nakupify",
             "amount": 50.00,
             "currency": "EUR",
             "id_order": "ABC123",
